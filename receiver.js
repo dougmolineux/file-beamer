@@ -47,4 +47,23 @@ const startReceiver = (name, udpPort, httpPort) => {
     });
 };
 
+const readline = require('readline');
+
+// Prompt the user for a receiver name
+const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+});
+
+rl.question('Enter a name for this receiver: ', (name) => {
+    const receiverName = name.trim() || 'Unnamed Receiver';
+    console.log(`Receiver name set to: ${receiverName}`);
+
+    // Start the receiver
+    startReceiver(receiverName, 41234, 8003);
+
+    // Close the readline interface
+    rl.close();
+});
+
 module.exports = { startReceiver };
