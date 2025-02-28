@@ -1,7 +1,7 @@
-// sender.js
 const dgram = require('dgram');
 const axios = require('axios');
 const fs = require('fs');
+const readline = require('readline');
 
 const discoverReceivers = (udpPort) => {
     return new Promise((resolve) => {
@@ -49,4 +49,66 @@ const sendFile = async (receiver, filePath) => {
     }
 };
 
+const main = async () => {
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout,
+    });
+
+    // Step 1: Discover receivers
+    console.log('Scanning for receivers...');
+    const receivers = await discoverReceivers(41234);
+
+    if (receivers.length === 0) {
+        console.log('No receivers found on the network.');
+        rl.close();
+        return;
+    }
+
+    // Step 2: Prompt the user to select a receiver
+    console.log('Available receivers:');
+    receivers.forEach((receiver, index) => {
+        console.log(`${index + 1}: ${receiver.name} (${receiver.ip}:${receiver.port})`);
+    });
+
+    rl.question('Select a receiver by number: ', async (answer) => {
+        const selectedIndex = parseInt(answer) - 1;
+
+        if (selectedIndex < 0 || selectedIndex >= receivers.length) {
+            console.log('Invalid selection.');
+            rl.close();
+            return;
+        }
+
+        const selectedReceiver = receivers[selectedIndex];
+        console.log(`Selected receiver: ${selectedReceiver.name} (${selectedReceiver.ip}:${selectedReceiver.port})`);
+
+        // Step 3: Prompt the user to enter the file path
+        rl.question('Enter the path of the file to send: ', async (filePath) => {
+            if (!fs.existsSync(filePath)) {
+                console.log('File does not exist.');
+                rl.close();
+                return;
+            }
+
+            // Step 4: Send the file
+            try {
+                console.log(`Sending file to ${selectedReceiver.name}...`);
+                const response = await sendFile(selectedReceiver, filePath);
+                console.log('File sent successfully:', response);
+            } catch (error) {
+                console.error('Error sending file:', error.message);
+            } finally {
+                rl.close();
+            }
+        });
+    });
+};
+
+// Export functions for testing
 module.exports = { discoverReceivers, sendFile };
+
+// Run the main function if the script is executed directly
+if (require.main === module) {
+    main();
+}
